@@ -44,6 +44,19 @@
       font-size: 0.9em;
       color: #bbb;
     }
+    .live-link {
+      display: block;
+      margin-top: 0.5rem;
+      color: #81c784;
+    }
+    .readme {
+      margin-top: 0.8rem;
+      font-size: 0.9em;
+      color: #ccc;
+      white-space: pre-wrap;
+      border-top: 1px solid #333;
+      padding-top: 0.5rem;
+    }
   </style>
 </head>
 <body>
@@ -61,7 +74,20 @@
   <div id="org-repos" class="repos"></div>
 
   <script>
+    async function fetchReadme(user, repo) {
+      try {
+        const res = await fetch(`https://api.github.com/repos/${user}/${repo}/readme`);
+        if (!res.ok) return 'README not found.';
+        const data = await res.json();
+        const content = atob(data.content);
+        return content.split('\n').slice(0, 10).join('\n') + '\n...';
+      } catch (e) {
+        return 'Error loading README.';
+      }
+    }
+
     async function fetchUserData(user, profileElId, reposElId) {
+      // Profile info
       const userRes = await fetch(`https://api.github.com/users/${user}`);
       const userData = await userRes.json();
       document.getElementById(profileElId).innerHTML = `
@@ -72,20 +98,26 @@
         </div>
       `;
 
+      // Repositories
       const reposRes = await fetch(`https://api.github.com/users/${user}/repos`);
       const repos = await reposRes.json();
 
       const repoContainer = document.getElementById(reposElId);
-      repos.forEach(repo => {
+      for (const repo of repos) {
+        const liveDemoURL = `https://${user}.github.io/${repo.name}/`;
+        const readmeText = await fetchReadme(user, repo.name);
+
         const div = document.createElement('div');
         div.className = 'repo';
         div.innerHTML = `
           <a href="${repo.html_url}" target="_blank">${repo.name}</a><br>
           <div class="lang">${repo.language || 'Unknown'}</div>
           <p>${repo.description || 'No description provided.'}</p>
+          <a class="live-link" href="${liveDemoURL}" target="_blank">🌐 Live Demo</a>
+          <div class="readme"><strong>README Preview:</strong>\n${readmeText}</div>
         `;
         repoContainer.appendChild(div);
-      });
+      }
     }
 
     fetchUserData("joeyaugust1", "personal-profile", "personal-repos");
@@ -94,4 +126,3 @@
 
 </body>
 </html>
-
